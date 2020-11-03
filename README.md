@@ -20,4 +20,6 @@ $ npm run start
 $ npm run generate
 ```
 
+You can find a working demo here: https://emmanuel-address-inputs.netlify.app/
+
 For detailed explanation on how things work, check out [Nuxt.js docs](https://nuxtjs.org).
