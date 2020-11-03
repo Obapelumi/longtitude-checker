@@ -6,6 +6,9 @@
 # install dependencies
 $ npm install
 
+# create .env file. You can reference the .env.example file for the required environment variables
+$ touch .env
+
 # serve with hot reload at localhost:3000
 $ npm run dev
 

@@ -41,7 +41,7 @@ import {
   ListboxButton,
   ListboxList,
   ListboxOption
-} from "@tailwindui/vue";
+} from "./ListBox";
 
 export default {
   components: {

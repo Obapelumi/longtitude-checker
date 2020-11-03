@@ -2,7 +2,7 @@
   <div class="flex justify-center min-h-screen bg-white">
     <div class="flex flex-col my-16 text-white">
       <div
-        class="flex bg-black my-1"
+        class="flex bg-black mb-1"
         v-for="(address, index) in addresses"
         :key="index"
       >

@@ -18,11 +18,9 @@ module.exports = {
       fontSize: {
         tiny: ".425rem"
       },
-      maxHeight: (theme) => ({
-        ...theme("spacing"),
-        full: "100%",
-        screen: "100vh"
-      }),
+      maxHeight: theme => ({
+        ...theme("spacing")
+      })
     }
   },
   variants: {

@@ -2,12 +2,16 @@
   <div class="flex h-full">
     <div class="hidden map"></div>
     <div class="group mt-4">
-      <span
-        class="h-4 w-4 text-white border border-white rounded-full flex items-center justify-center cursor-pointer text-xs capitalize"
-        >?</span
+      <button
+        class="h-4 w-4 text-white border border-white rounded-full flex items-center justify-center cursor-pointer text-xs capitalize focus:outline-none"
+        @focus="toolTipFocus = true"
+        @blur="toolTipFocus = false"
       >
+        ?
+      </button>
       <span
         class="hidden group-hover:flex rounded absolute right-1/2 text-xs text-white bg-gray-900 shadow py-1 px-2"
+        :class="toolTipFocus ? 'w-24' : ''"
         >{{ toolTip }}</span
       >
     </div>
@@ -34,12 +38,13 @@
           for="address"
           class="-mt-6 w-2 bg-black z-10 relative ml-56 text-center font-extrabold text-lg rounded-full focus:outline-none"
           @click="$emit('add')"
+          v-if="address.status == 'confirmed'"
         >
           +
         </button>
 
         <Listbox
-          v-model="suggestion"
+          @input="selectSuggestion"
           class="w-56 max-h-48 bg-gray-800 shadow overflow-y-auto"
           v-if="suggestions.length > 0"
         >
@@ -85,7 +90,7 @@
         >
       </div>
       <button
-        class="h-5 w-5 bg-gray-700 rounded-full text-white font-extrabold flex items-center justify-center cursor-pointer text-xs -ml-5 mr-5 z-10 focus:outline-none"
+        class="h-5 w-5 bg-gray-700 rounded-full text-white font-extrabold flex items-center justify-center cursor-pointer text-xs -ml-4 mr-4 z-10 focus:outline-none"
         type="button"
         @click="cancel()"
         v-if="address.status != 'setting' && addressText"
@@ -97,13 +102,14 @@
 </template>
 
 <script>
+import debounce from "debounce";
 import {
   Listbox,
   ListboxLabel,
   ListboxButton,
   ListboxList,
   ListboxOption
-} from "@tailwindui/vue";
+} from "./ListBox";
 
 export default {
   components: {
@@ -129,11 +135,11 @@ export default {
     },
     addressFocus: false,
     addressText: null,
-    debouncer: null,
     suggestion: null,
     suggestions: [],
     searchState: null,
-    summary: null
+    summary: null,
+    toolTipFocus: false
   }),
   methods: {
     addressInputFocused() {
@@ -176,9 +182,10 @@ export default {
         majorTown: adminAreaLevel1 ? adminAreaLevel1.long_name : null,
         country: country ? country.long_name : null,
         coordinates: {
-          latitude: this.address.place.geometry.location.lat(),
-          longtitude: this.address.place.geometry.location.lng()
-        }
+          lat: this.address.place.geometry.location.lat(),
+          lng: this.address.place.geometry.location.lng()
+        },
+        placeId: this.address.placeId
       };
 
       this.$emit("update", {
@@ -188,20 +195,16 @@ export default {
     },
     cancel() {
       this.address = {
+        placeId: null,
         place: null,
         text: null,
         number: null,
         status: null
       };
       this.addressText = null;
-      this.debouncer = null;
       this.suggestions = [];
       this.searchState = null;
       this.summary = null;
-    },
-    debounce(callBack = () => {}, timeOut = 500) {
-      if (this.debouncer) clearTimeout(this.debouncer);
-      this.debouncer = setTimeout(callBack, timeOut);
     },
     focusOnListBox() {
       if (this.$refs[`listbox-list-${this.index}`])
@@ -224,18 +227,17 @@ export default {
         });
       });
     },
-    search() {
-      this.debounce(async () => {
-        if (!this.addressText) return (this.suggestions = []);
-        this.searchState = "searching";
-        try {
-          this.suggestions = await this.searchPlaces(this.addressText);
-        } catch (error) {
-          this.suggestions = [];
-        }
-        this.searchState = "returned";
-      }, 500);
-    },
+    // wait for user to finish typing
+    search: debounce(async function () {
+      if (!this.addressText) return (this.suggestions = []);
+      this.searchState = "searching";
+      try {
+        this.suggestions = await this.searchPlaces(this.addressText);
+      } catch (error) {
+        this.suggestions = [];
+      }
+      this.searchState = "returned";
+    }, 500),
     searchPlaces(input) {
       var service = new google.maps.places.AutocompleteService();
       return new Promise((resolve, reject) => {
@@ -247,10 +249,12 @@ export default {
         });
       });
     },
-    async selectAddress(suggestion) {
+    async selectSuggestion(suggestion) {
       this.address.text = suggestion.description;
       this.addressText = suggestion.description;
       this.address.status = "setting";
+      this.address.number = null;
+      this.address.placeId = suggestion.place_id;
 
       // request details of the selected place from google maps
       this.address.place = await this.getPlace({
@@ -274,14 +278,6 @@ export default {
   updated() {
     if (this.$refs[`addressNumber-${this.index}`])
       this.$refs[`addressNumber-${this.index}`].focus();
-  },
-  watch: {
-    suggestion: {
-      deep: true,
-      handler(suggestion) {
-        this.selectAddress(suggestion);
-      }
-    }
   }
 };
 </script>
